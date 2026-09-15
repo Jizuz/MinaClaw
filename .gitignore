@@ -1,0 +1,21 @@
+# 敏感配置（密钥）
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 虚拟环境
+claw/
+
+# 运行时产物
+logs/
+sandbox/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store

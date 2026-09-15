@@ -1,0 +1,17 @@
+# Web 框架与服务
+fastapi
+uvicorn[standard]      # [standard] 含 websockets，WebSocket 对话必需
+
+# 数据校验与配置
+pydantic>=2.0
+pydantic-settings      # config.py 的 Settings
+python-dotenv          # pydantic-settings 的 env_file=".env" 功能依赖
+
+# LLM 调用
+openai                 # OpenAI 兼容 SDK（对接智谱 GLM）
+httpx                  # skills/skill_executor.py 直接使用（openai SDK 亦依赖）
+tiktoken               # utils/token_counter.py Token 计数
+
+# 技能插件
+aiosmtplib             # 邮件技能（延迟导入）
+pyyaml                 # skills/skill_loader.py 技能定义解析
