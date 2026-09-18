@@ -1,10 +1,10 @@
-# MinaClaw 🦀
+# MinaClaw
 
 > 基于 FastAPI 的轻量级 **ReAct Agent 网关**：WebSocket 流式对话 + 插件化技能系统 + 沙箱执行 + 流量治理 + Token 预算控制。
 
 MinaClaw 通过 OpenAI 兼容协议对接大模型（默认智谱 GLM，可切换 OpenAI / DeepSeek / vLLM / Ollama 等），将 LLM 的 `tool_calls` 能力封装为一套安全、可观测、可限流的 Agent 服务。
 
-## ✨ 特性
+## 特性
 
 - **WebSocket 流式对话** — 逐 token 推送思考过程、工具调用、最终答案，支持中断（interrupt）与心跳（ping/pong）
 - **ReAct Agent 循环** — 基于 OpenAI Function Calling 协议，最多 8 轮"推理 → 调用工具 → 观察"迭代
@@ -16,7 +16,7 @@ MinaClaw 通过 OpenAI 兼容协议对接大模型（默认智谱 GLM，可切�
 - **上下文管理** — 超出 token 预算自动压缩历史为摘要（LLM 摘要，失败时降级为截断式摘要）
 - **结构化日志** — JSON 行格式、按天滚动、审计日志独立落盘，`contextvars` 注入 request_id / session_id / task_id
 
-## 🏗 架构
+## 架构
 
 ```
 ┌──────────┐   WebSocket    ┌─────────────────────────────────────┐
@@ -69,7 +69,7 @@ MinaClaw/
 └── logs/                   # 运行日志（自动创建，不入库）
 ```
 
-## 🚀 快速开始
+## 快速开始
 
 ### 环境要求
 
@@ -121,7 +121,7 @@ uvicorn main:app --host 0.0.0.0 --port 8010
 - 服务地址：`http://localhost:8010`
 - 交互式 API 文档（Swagger）：`http://localhost:8010/docs`
 
-## 📡 API
+## API
 
 所有 REST 接口需携带请求头 `X-API-Key: <你的网关Key>`。
 
@@ -163,7 +163,7 @@ ws://localhost:8010/api/chat/ws?session_id=<sid>&api_key=<key>
 | `done` | 回答完成（或达到最大迭代次数） |
 | `error` / `cancelled` | 错误 / 已取消（含限流、配额超限原因） |
 
-## 🧩 技能系统
+## 技能系统
 
 技能 = `skills/defs/` 下的一个 Markdown 文件：**YAML front-matter 声明元信息，正文作为工具描述喂给 LLM**。修改后调用 `POST /api/skills/reload` 即可热加载。
 
@@ -193,7 +193,7 @@ parameters:                  # OpenAI JSON Schema
 | `send_email` | smtp | 发送邮件（aiosmtplib） |
 | `design_travel_plan` | travel | 生成旅行攻略文档并落盘沙箱 |
 
-## 🛡 安全与治理
+## 安全与治理
 
 **文件沙箱**（`utils/sandbox.py`）
 
@@ -216,14 +216,9 @@ parameters:                  # OpenAI JSON Schema
 
 **Token 预算**：请求前预检配额，调用后按 API 返回的 usage 精确计量（缺失时 tiktoken 兜底估算），超限返回 `token_quota_exceeded`。
 
-## 📊 可观测性
+## 可观测性
 
 - `logs/app.log.*` — 应用日志（JSON 行格式，按天滚动）
 - `logs/audit.log.*` — 审计日志（用户消息、工具调用与结果、Token 消耗）
 - `logs/tokens.jsonl` — 每次模型调用一行用量记录（Key 自动脱敏）
 - 运行时指标：`/api/chat/traffic`、`/api/chat/queue`、`/api/chat/tokens`
-
-## 📄 License
-
-MIT
-
