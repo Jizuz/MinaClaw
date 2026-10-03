@@ -16,3 +16,9 @@ tiktoken               # utils/token_counter.py Token 计数
 # 技能插件
 aiosmtplib             # 邮件技能（延迟导入）
 pyyaml                 # skills/skill_loader.py 技能定义解析
+
+# PostgreSQL 持久化与认证鉴权
+psycopg[binary]        # PostgreSQL 异步驱动（psycopg3）
+psycopg-pool           # 异步连接池
+bcrypt                 # 密码哈希（直接使用 bcrypt 库，对齐 ddl users.password_hash）
+python-jose            # JWT 签发与校验（HS256）

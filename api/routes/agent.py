@@ -2,16 +2,16 @@ import asyncio
 import json
 import uuid
 
-from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
+from fastapi import (APIRouter, Depends, HTTPException, Query, WebSocket,
+                     WebSocketDisconnect)
 
 from utils.logger import (setup_logging, get_logger, bind_context, reset_context, log_extra)
 from core.session_manager import session_manager
-from middleware.auth import get_valid_keys, verify_api_key
+from middleware.auth import Principal, authenticate, verify_api_key
 from core.task_queue import task_queue
 from middleware.rate_limit import traffic
 from utils.token_counter import token_meter
 from core.agent_loop import SYSTEM_PROMPT
-from utils.logger import bind_context, get_logger, log_extra, reset_context
 
 router = APIRouter(prefix="/api/chat", tags=["聊天管理"])
 
@@ -19,38 +19,43 @@ router = APIRouter(prefix="/api/chat", tags=["聊天管理"])
 log = get_logger("agent")
 
 @router.get("/traffic")
-async def traffic_stats(_key: str = Depends(verify_api_key)):
+async def traffic_stats(_p: Principal = Depends(verify_api_key)):
     return traffic.snapshot()
 
 
 @router.get("/queue")
-async def queue_stats(_key: str = Depends(verify_api_key)):
+async def queue_stats(_p: Principal = Depends(verify_api_key)):
     return task_queue.snapshot()
 
 
 @router.get("/tokens")
 async def token_stats(
     session_id: str | None = None,
-    key: str = Depends(verify_api_key),
-):
-    return token_meter.snapshot(api_key=key, session_id=session_id)
+    p: Principal = Depends(verify_api_key),
+) -> dict:
+    return token_meter.snapshot(api_key=p.key, session_id=session_id)
 
 @router.websocket("/ws")
 async def ws_chat(
     websocket: WebSocket,
     session_id: str = Query(...),
-    api_key: str = Query(...),
+    token: str = Query(default=""),
+    api_key: str = Query(default=""),
 ):
     log.info(f"=====> ws_chat start, session_id: {session_id}")
     request_id = uuid.uuid4().hex[:8]
-    tokens = bind_context(request_id=request_id, api_key=api_key, session_id=session_id)
-    try:
-        if api_key not in get_valid_keys():
-            await websocket.close(code=4001, reason="Unauthorized")
-            return
 
-        if not session_manager.exists(session_id):
-            session_id = session_manager.create()
+    # 统一鉴权：JWT（token）或 API Key（api_key）二选一
+    try:
+        p = await authenticate(token=token, api_key=api_key)
+    except HTTPException:
+        await websocket.close(code=4001, reason="Unauthorized")
+        return
+
+    tokens = bind_context(request_id=request_id, api_key=p.key, session_id=session_id)
+    try:
+        if not await session_manager.exists(session_id, user_id=p.user_id):
+            session_id = await session_manager.create(user_id=p.user_id)
             log.info("session auto-created", extra=log_extra(session_id=session_id))
 
         await websocket.accept()
@@ -104,7 +109,7 @@ async def ws_chat(
                     continue
 
                 # 1) 流量检测
-                ok, reason = await traffic.check(api_key)
+                ok, reason = await traffic.check(p.key)
                 if not ok:
                     log.warning("traffic reject", extra=log_extra(reason=reason))
                     await websocket.send_json({
@@ -115,7 +120,7 @@ async def ws_chat(
                     continue
 
                 # 2) Token 配额检查
-                ok_quota, used, quota = token_meter.check_quota(api_key)
+                ok_quota, used, quota = token_meter.check_quota(p.key)
                 if not ok_quota:
                     await traffic.release(success=True)
                     await websocket.send_json({
@@ -128,7 +133,7 @@ async def ws_chat(
                 # 3) 提交任务
                 task = await task_queue.submit(
                     session_id=session_id,
-                    api_key=api_key,
+                    api_key=p.key,
                     payload={"content": user_text},
                     priority=10,
                     event_queue=event_queue,

@@ -102,7 +102,10 @@ cp .env.example .env
 | `OPENAI_API_KEY` | LLM 服务商 API Key | — |
 | `OPENAI_BASE_URL` | OpenAI 兼容端点 | `https://open.bigmodel.cn/api/paas/v4` |
 | `OPENAI_MODEL` | 模型名 | `glm-4-plus` |
-| `MINACLAW_API_KEYS` | 网关鉴权 Key（逗号分隔多个） | `dev-key-123` |
+| `DATABASE_URL` | PostgreSQL 连接串（`jdbc:postgresql://` 或 `postgresql://`） | `jdbc:postgresql://localhost:5432/mina` |
+| `JWT_SECRET` | 登录 JWT 签名密钥（生产环境务必修改） | `change-me-in-production` |
+| `JWT_EXPIRE_MINUTES` | JWT 有效期（分钟） | `1440` |
+| `MINACLAW_API_KEYS` | 网关静态鉴权 Key（逗号分隔多个，向后兼容） | `dev-key-123` |
 | `LOG_LEVEL` / `LOG_DIR` / `LOG_JSON` | 日志级别 / 目录 / JSON 开关 | `INFO` / `./logs` / `true` |
 | `DAILY_TOKEN_QUOTA` | 每日 Token 配额 | `1000000` |
 | `DAILY_TOKEN_WARN` | Token 预警阈值 | `800000` |
@@ -125,7 +128,11 @@ uvicorn main:app --host 0.0.0.0 --port 8010
 
 ## API
 
-所有 REST 接口需携带请求头 `X-API-Key: <你的网关Key>`。
+认证方式（三选一，按优先级）：
+
+1. **JWT（推荐）**：`POST /api/auth/login` 登录后携带 `Authorization: Bearer <token>`
+2. **数据库 API Key**：`POST /api/keys` 创建后携带 `X-API-Key: mc_xxx`（库中只存 sha256，支持吊销/过期）
+3. **静态 Key**：`MINACLAW_API_KEYS` 环境变量（向后兼容 `dev-key-123`，无归属用户）
 
 > 前端对接：技能管理（列表 / 上传 / 删除）接口的完整请求响应示例、TypeScript 类型与 Client 封装见 **[docs/skills-api.md](docs/skills-api.md)**。
 
@@ -133,8 +140,15 @@ uvicorn main:app --host 0.0.0.0 --port 8010
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
+| `POST` | `/api/auth/register` | 注册用户（username + password，可选 display_name / email） |
+| `POST` | `/api/auth/login` | 登录，返回 JWT 与用户信息 |
+| `GET` | `/api/auth/me` | 当前登录用户信息 |
+| `POST` | `/api/keys` | 创建 API Key（明文 `mc_` 前缀仅返回一次） |
+| `GET` | `/api/keys` | 列出当前用户的 API Key |
+| `DELETE` | `/api/keys/{id}` | 吊销 API Key（立即失效） |
 | `POST` | `/api/session/create` | 创建会话，返回 `session_id` |
-| `GET` | `/api/session/list` | 会话列表 |
+| `GET` | `/api/session/list` | 当前用户会话列表（含标题/统计） |
+| `GET` | `/api/session/{sid}/messages` | 会话历史消息（校验归属） |
 | `GET` | `/api/skills/list` | 已加载技能及其参数 Schema |
 | `POST` | `/api/skills/reload` | 热重载技能插件 |
 | `POST` | `/api/skills/upload` | 上传 zip 技能目录包（multipart，校验通过即热加载） |
@@ -146,8 +160,12 @@ uvicorn main:app --host 0.0.0.0 --port 8010
 ### WebSocket 对话
 
 ```
+ws://localhost:8010/api/chat/ws?session_id=<sid>&token=<jwt>
+# 或
 ws://localhost:8010/api/chat/ws?session_id=<sid>&api_key=<key>
 ```
+
+会话与消息持久化到 PostgreSQL（`sessions` / `messages` 表，按用户隔离），服务重启后上下文自动恢复。
 
 **客户端 → 服务端**
 

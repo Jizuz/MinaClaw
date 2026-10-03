@@ -21,6 +21,14 @@ class Settings(BaseSettings):
     # 鉴权
     minaclaw_api_keys: str = os.getenv("MINACLAW_API_KEYS", "dev-key-123")
 
+    # PostgreSQL（支持 jdbc:postgresql:// 与 postgresql:// 两种格式）
+    database_url: str = os.getenv(
+        "DATABASE_URL", "jdbc:postgresql://localhost:5432/mina")
+
+    # JWT（登录注册）
+    jwt_secret: str = os.getenv("JWT_SECRET", "change-me-in-production")
+    jwt_expire_minutes: int = int(os.getenv("JWT_EXPIRE_MINUTES", "1440"))
+
     # 沙箱
     sandbox_dir: str = str(SANDBOX_DIR)
     max_file_size_mb: int = 10
