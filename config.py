@@ -32,6 +32,20 @@ class Settings(BaseSettings):
     max_context_tokens: int = 6000
     max_iterations: int = 8
 
+    # 技能渐进式加载（tools 仅注入摘要，详情经 load_skill 按需获取）
+    skill_progressive: bool = (
+        os.getenv("SKILL_PROGRESSIVE", "true").lower() == "true"
+    )
+
+    # 技能上传（zip 目录包，对齐 Agent Skills 开放标准）
+    skill_upload_enabled: bool = (
+        os.getenv("SKILL_UPLOAD_ENABLED", "true").lower() == "true"
+    )
+    skill_upload_max_zip_mb: int = int(os.getenv("SKILL_UPLOAD_MAX_ZIP_MB", "5"))
+    skill_upload_max_total_mb: int = int(
+        os.getenv("SKILL_UPLOAD_MAX_TOTAL_MB", "20"))
+    skill_upload_max_files: int = int(os.getenv("SKILL_UPLOAD_MAX_FILES", "50"))
+
     # 日志
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
     log_dir: str = str(LOG_DIR)

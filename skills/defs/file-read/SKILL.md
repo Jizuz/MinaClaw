@@ -1,6 +1,9 @@
 ---
-name: file_read
-description: 读取沙箱内的文本文件内容
+name: file-read
+description: 读取沙箱内的文本文件内容。当用户需要查看某个文件的内容，或基于文件内容做后续处理时使用。
+---
+
+```yaml
 executor: file_read
 parameters:
   type: object
@@ -9,7 +12,7 @@ parameters:
       type: string
       description: 相对沙箱的路径或绝对路径（须在沙箱内）
   required: [path]
----
+```
 
 读取指定路径的文本文件并返回其内容。
 

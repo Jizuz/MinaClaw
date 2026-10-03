@@ -1,5 +1,6 @@
 # Web 框架与服务
 fastapi
+python-multipart       # POST /api/skills/upload 文件上传（multipart/form-data）
 uvicorn[standard]      # [standard] 含 websockets，WebSocket 对话必需
 
 # 数据校验与配置

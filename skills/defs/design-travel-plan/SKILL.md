@@ -1,6 +1,9 @@
 ---
-name: design_travel_plan
-description: 根据目的地、天数、偏好生成旅游攻略框架
+name: design-travel-plan
+description: 根据目的地、天数、偏好生成旅游攻略框架文档。当用户提到旅行计划、行程规划或需要产出攻略文档时使用。
+---
+
+```yaml
 executor: template
 parameters:
   type: object
@@ -31,6 +34,8 @@ template: |
 
   ## 预算估算
   - 总预算：{budget}
----
+```
 
 生成旅游攻略的**结构化框架**。LLM 拿到框架后应结合用户偏好补充每日细节。
+
+更多偏好组合示例见 references/prefs.md。

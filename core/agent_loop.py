@@ -29,12 +29,21 @@ SYSTEM_PROMPT = """你是 MinaClaw，一个具备工具调用能力的智能助�
 回答使用中文，结构清晰、内容实用。
 """
 
+if settings.skill_progressive:
+    SYSTEM_PROMPT += """
+工具渐进式加载：
+- 工具列表中的描述仅为摘要
+- 首次调用某个工具前，如需了解其详细用法、限制与示例，先调用 load_skill 获取完整说明
+"""
+
 class ClawAgent:
     def __init__(self):
-        self.tool_schemas: List[dict] = registry.tool_schemas()
+        self.tool_schemas: List[dict] = registry.tool_schemas(
+            compact=settings.skill_progressive)
 
     def refresh_tools(self):
-        self.tool_schemas = registry.tool_schemas()
+        self.tool_schemas = registry.tool_schemas(
+            compact=settings.skill_progressive)
 
     async def run(
         self,

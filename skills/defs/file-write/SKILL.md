@@ -1,6 +1,9 @@
 ---
-name: file_write
-description: 将内容写入沙箱内的文件（覆盖写）
+name: file-write
+description: 将内容写入沙箱内的文件（覆盖写）。当用户要求创建、保存或更新沙箱内文件时使用。
+---
+
+```yaml
 executor: file_write
 parameters:
   type: object
@@ -12,7 +15,7 @@ parameters:
       type: string
       description: 要写入的完整文本内容
   required: [path, content]
----
+```
 
 把 `content` 完整写入 `path`，自动创建父目录，文件已存在则覆盖。
 

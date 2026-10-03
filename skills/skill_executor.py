@@ -208,6 +208,22 @@ async def exec_http(args, ctx):
         return {"success": False, "error": str(e)}
 
 
+async def exec_load_skill(args, ctx):
+    """渐进式加载：返回目标技能的完整定义（description + 正文）"""
+    from skills.skill_loader import registry, META_TOOL_NAME  # 延迟导入避免循环依赖
+
+    name = str(args.get("skill", "")).strip()
+    log.info("load_skill", extra=log_extra(skill=name))
+    if not name or name == META_TOOL_NAME:
+        return {"success": False, "error": "无效的技能名"}
+    skill = registry.skills.get(name)
+    if not skill:
+        return {"success": False,
+                "error": f"未知技能: {name}",
+                "available": list(registry.skills.keys())}
+    return {"success": True, "skill": name, "output": skill.detail_text()}
+
+
 EXECUTORS: Dict[str, Callable] = {
     "file_read": exec_file_read,
     "file_write": exec_file_write,
@@ -216,6 +232,7 @@ EXECUTORS: Dict[str, Callable] = {
     "email": exec_email,
     "template": exec_template,
     "http": exec_http,
+    "skill_loader": exec_load_skill,
 }
 
 

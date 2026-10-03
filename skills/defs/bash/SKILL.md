@@ -1,6 +1,9 @@
 ---
 name: bash
-description: 在沙箱内执行受限的 shell 命令
+description: 在沙箱内执行受限的白名单 shell 命令。当用户需要查看目录、搜索文本、统计文件等系统级操作时使用。
+---
+
+```yaml
 executor: bash
 parameters:
   type: object
@@ -9,7 +12,7 @@ parameters:
       type: string
       description: 要执行的命令，例如 'ls -la'
   required: [command]
----
+```
 
 执行白名单内的 shell 命令，工作目录固定为沙箱根目录。
 
