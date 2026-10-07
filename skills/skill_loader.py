@@ -23,6 +23,8 @@ META_TOOL_DESC = (
     "工具列表中的描述仅为摘要；在首次调用一个技能之前，"
     "如需了解其详细用法、限制、示例与捆绑的参考文件，"
     "先调用本工具获取完整定义，再按说明调用目标技能。"
+    "系统会把本会话已加载技能的完整说明以 [已加载技能] 系统消息注入上下文，"
+    "已注入的技能无需重复调用本工具。"
 )
 
 
@@ -181,6 +183,9 @@ def _parse_md(path: Path, dir_name: Optional[str] = None) -> Skill:
 class SkillRegistry:
     def __init__(self):
         self.skills: Dict[str, Skill] = {}
+        # 世代计数：load_all() 每次调用自增（上传/删除/热重载统一经由 load_all），
+        # 会话级加载缓存以「记录 gen == 当前世代」判定记录是否仍然有效
+        self.generation: int = 0
         # 渐进式加载内置元工具（不进入 self.skills，不受热重载影响）
         self._meta_skill = Skill(
             meta={
@@ -203,6 +208,8 @@ class SkillRegistry:
         )
 
     def load_all(self):
+        # 任何一次（重）加载都改变世代，使既有会话加载记录失效
+        self.generation += 1
         self.skills.clear()
         if not DEF_DIR.exists():
             log.warning(f"skills dir not found: {DEF_DIR}")
@@ -229,7 +236,8 @@ class SkillRegistry:
                 log.warning(f"skip skill {f.name}: {e}")
         log.info("skills loaded",
                  extra=log_extra(count=len(self.skills),
-                                 names=list(self.skills.keys())))
+                                 names=list(self.skills.keys()),
+                                 generation=self.generation))
 
     def tool_schemas(self, compact: bool = False) -> List[dict]:
         """compact=True 时仅注入技能摘要 + load_skill 元工具（渐进式加载）"""

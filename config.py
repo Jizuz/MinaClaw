@@ -54,6 +54,13 @@ class Settings(BaseSettings):
         os.getenv("SKILL_UPLOAD_MAX_TOTAL_MB", "20"))
     skill_upload_max_files: int = int(os.getenv("SKILL_UPLOAD_MAX_FILES", "50"))
 
+    # 会话级技能加载缓存（轮首注入 + load_skill 命中去重，仅渐进式模式生效）
+    skill_session_cache: bool = (
+        os.getenv("SKILL_SESSION_CACHE", "true").lower() == "true"
+    )
+    skill_session_cache_max_chars: int = int(
+        os.getenv("SKILL_SESSION_CACHE_MAX_CHARS", "4000"))
+
     # 日志
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
     log_dir: str = str(LOG_DIR)

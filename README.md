@@ -111,6 +111,8 @@ cp .env.example .env
 | `DAILY_TOKEN_WARN` | Token 预警阈值 | `800000` |
 | `SMTP_HOST` 等 | 邮件技能 SMTP 配置 | — |
 | `SKILL_PROGRESSIVE` | 技能渐进式加载（摘要注入 + `load_skill` 按需取详情） | `true` |
+| `SKILL_SESSION_CACHE` | 会话级技能加载缓存（已加载技能详情轮首注入 + `load_skill` 命中去重，仅渐进式模式生效） | `true` |
+| `SKILL_SESSION_CACHE_MAX_CHARS` | 已加载技能详情注入的总字符上限（超出部分仅列名提示） | `4000` |
 | `SKILL_UPLOAD_*` | 技能上传：开关 / 压缩包上限 MB / 解压总量上限 MB / 最大文件数 | `true` / `5` / `20` / `50` |
 
 </details>
@@ -287,7 +289,7 @@ parameters:                  # OpenAI JSON Schema
 - **技能仓库与远程加载** — 在现有 zip 上传接口基础上，支持从 Git 仓库 / URL 拉取技能目录包，实现技能集市与版本管理（配合签名校验保障供应链安全）
 - **向量检索技能路由** — 技能数量进一步增长时，先按用户意图检索 Top-K 技能摘要再注入 `tools`，与渐进式加载叠加，使 token 占用不随技能总数线性膨胀
 - **技能编排** — 技能间依赖声明与组合调用（workflow），支持一次完成多步骤任务
-- **会话级加载缓存** — 在会话中记录已 `load_skill` 的技能，避免跨轮重复加载
+- [x] **会话级加载缓存** — ✅ 已实现：会话中记录已 `load_skill` 的技能（`sessions.meta` 持久化 + registry 世代失效），新轮轮首注入 `[已加载技能]` 详情、`load_skill` 命中返回 `cached: true`，跨轮不再重复加载
 
 ### 记忆与上下文
 

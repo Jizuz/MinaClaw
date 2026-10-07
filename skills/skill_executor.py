@@ -209,7 +209,14 @@ async def exec_http(args, ctx):
 
 
 async def exec_load_skill(args, ctx):
-    """渐进式加载：返回目标技能的完整定义（description + 正文）"""
+    """渐进式加载：返回目标技能的完整定义（description + 正文）
+
+    会话级加载缓存（D4 四分支）：
+    1. 无会话 / 缓存开关关闭 / 非渐进式 → 维持现状返回全文，不记录
+    2. 记录缺失或失效（技能被删 / 世代不符）→ 返回全文并按当前世代重新记录
+    3. 记录有效且详情已注入当前上下文（injected_skills）→ cached 简短提示
+    4. 记录有效但未注入（超限列名 / 被裁剪）→ 返回全文并置顶最近性
+    """
     from skills.skill_loader import registry, META_TOOL_NAME  # 延迟导入避免循环依赖
 
     name = str(args.get("skill", "")).strip()
@@ -221,6 +228,28 @@ async def exec_load_skill(args, ctx):
         return {"success": False,
                 "error": f"未知技能: {name}",
                 "available": list(registry.skills.keys())}
+
+    # ---- 会话级加载缓存判定（session_id 由 agent_loop 经工具 ctx 透传）----
+    from core.session_manager import session_manager  # 延迟导入避免循环依赖
+    sid = (ctx.get("session_id") or "") if ctx else ""
+    sess = session_manager.sessions.get(sid) if sid else None
+    if sess is None or not (
+            settings.skill_progressive and settings.skill_session_cache):
+        # 分支 1：无会话 / 开关关闭 / 非渐进式 → 现状行为
+        return {"success": True, "skill": name, "output": skill.detail_text()}
+
+    loaded = sess.get("loaded_skills") or []
+    rec = next((r for r in loaded if r.get("name") == name), None)
+    if rec is not None and rec.get("gen") == registry.generation \
+            and name in (sess.get("injected_skills") or set()):
+        # 分支 3：详情已注入当前上下文 → 简短提示，不再返回全文
+        log.info("load_skill cache hit",
+                 extra=log_extra(skill=name, cached=True))
+        return {"success": True, "cached": True, "skill": name,
+                "output": "该技能完整说明已在当前上下文中（系统注入），无需重复加载。"}
+
+    # 分支 2（缺失/失效）与分支 4（有效但未注入）：返回全文并按当前世代记录
+    await session_manager.record_skill_load(sid, name, registry.generation)
     return {"success": True, "skill": name, "output": skill.detail_text()}
 
 

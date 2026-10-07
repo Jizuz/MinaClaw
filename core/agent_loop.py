@@ -34,6 +34,7 @@ if settings.skill_progressive:
 工具渐进式加载：
 - 工具列表中的描述仅为摘要
 - 首次调用某个工具前，如需了解其详细用法、限制与示例，先调用 load_skill 获取完整说明
+- 系统会把本会话已加载技能的完整说明以 [已加载技能] 系统消息注入上下文，已注入的技能无需重复调用 load_skill
 """
 
 class ClawAgent:
@@ -163,7 +164,8 @@ class ClawAgent:
                     result = {"success": False, "error": f"未知工具: {fn_name}", "output": ""}
                 else:
                     try:
-                        result = await skill.run(args, {})
+                        result = await skill.run(
+                            args, {"session_id": session_id})
                     except Exception as e:
                         log.exception("tool run error", extra=log_extra(tool=fn_name))
                         result = {"success": False, "error": str(e), "output": ""}
