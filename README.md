@@ -114,6 +114,7 @@ cp .env.example .env
 | `SKILL_SESSION_CACHE` | 会话级技能加载缓存（已加载技能详情轮首注入 + `load_skill` 命中去重，仅渐进式模式生效） | `true` |
 | `SKILL_SESSION_CACHE_MAX_CHARS` | 已加载技能详情注入的总字符上限（超出部分仅列名提示） | `4000` |
 | `SKILL_UPLOAD_*` | 技能上传：开关 / 压缩包上限 MB / 解压总量上限 MB / 最大文件数 | `true` / `5` / `20` / `50` |
+| `TOOL_MAX_FAILURES` | 工具失败防抖：同工具连续失败达到该次数后任务终止 | `3` |
 
 </details>
 

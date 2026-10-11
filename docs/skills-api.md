@@ -305,3 +305,29 @@ export const skillsApi = {
 详情未注入当前上下文（超限列名 / 被裁剪 / 缓存关闭）时，`load_skill` 仍返回完整定义，并将该技能的加载最近性提前。
 
 **失效行为**：技能上传（含覆盖）、删除、热重载都会使注册表世代自增——旧加载记录随之失效：失效技能不再注入，再次 `load_skill` 返回新版完整定义并按新世代重新记录；已删除技能的记录被清除，`load_skill` 返回未知技能错误。设置 `SKILL_SESSION_CACHE=false` 可完全关闭本能力（不注入、`load_skill` 恒返回全文，行为与未引入前一致）。
+
+---
+
+## 6. 附：工具异常自愈行为说明
+
+Agent 循环中工具调用失败时不中断任务，而是以结构化错误信封作为 `role=tool` 消息回传模型，引导其修正后重试（`tool_end` 事件透传同一结构，新增字段向后兼容）：
+
+```json
+{
+  "success": false,
+  "error": "参数不是合法 JSON: Expecting property name enclosed in double quotes",
+  "output": "",
+  "kind": "invalid_args",
+  "retry_hint": "请检查参数格式，修正为合法 JSON 后重试",
+  "raw": "{\"path\": \"a.txt\","
+}
+```
+
+**字段说明**：
+
+- `kind`：错误分类，取值 `invalid_args`（参数非合法 JSON，附 `raw` 原始片段截断至 200 字符）、`unknown_tool`（工具名未注册，附 `available` 可用技能名列表）、`timeout`（超时类异常）、`transient`（临时网络/系统错误，可重试一次）、`permanent`（其余异常，建议更换方法或参数）
+- `error`：非空错误消息（异常消息为空时回退异常类名），截断至 500 字符
+- `retry_hint`：面向模型的修复指引
+- `escalation`（可选）：同工具连续失败达 2 次时附加的策略变更提示
+
+**失败防抖**：单次任务内按工具名统计连续失败次数（成功即清零）。连续失败达到 `TOOL_MAX_FAILURES`（默认 `3`，环境变量可配）时，任务以 `error` 事件终止，不再消耗后续迭代。系统提示词已内置「工具失败应对」策略引导（读分类、修参数、换方案、禁止同参重试）。

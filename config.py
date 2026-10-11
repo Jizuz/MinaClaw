@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     max_context_tokens: int = 6000
     max_iterations: int = 8
 
+    # 工具失败防抖（同工具连续失败达到阈值后任务终止，openspec: tool-error-self-healing）
+    tool_max_failures: int = int(os.getenv("TOOL_MAX_FAILURES", "3"))
+
     # 技能渐进式加载（tools 仅注入摘要，详情经 load_skill 按需获取）
     skill_progressive: bool = (
         os.getenv("SKILL_PROGRESSIVE", "true").lower() == "true"
